@@ -51,11 +51,6 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-		<dependency>
-			<groupId>com.wit</groupId>
-			<artifactId>calculator-core</artifactId>
-		</dependency>
 	</dependencies>
 
 	<build>
