@@ -1,12 +1,15 @@
 package com.wit.calculator_api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -16,6 +19,8 @@ import java.util.Map;
 @RequestMapping("/api")
 public class CalculatorController {
 
+    @Autowired
+    private ObjectMapper objectMapper;
     private final RabbitTemplate rabbitTemplate;
     @Value("${exchangeKey}")
     private String exchangeKey;
@@ -27,9 +32,10 @@ public class CalculatorController {
     }
 
     @GetMapping(value = "/sum")
-    public ResponseEntity getSum(@RequestParam BigDecimal a, @RequestParam BigDecimal b){
+    public ResponseEntity getSum(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            Map<String, Object> res = sendRequest("add", a, b);
+            String uniqueId = response.getHeader("X-Unique-ID");
+            Map<String, Object> res = sendRequest("add", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -39,9 +45,10 @@ public class CalculatorController {
     }
 
     @GetMapping(value = "/subtraction")
-    public ResponseEntity getSubtraction(@RequestParam BigDecimal a, @RequestParam BigDecimal b){
+    public ResponseEntity getSubtraction(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            Map<String, Object> res = sendRequest("subtract", a, b);
+            String uniqueId = response.getHeader("X-Unique-ID");
+            Map<String, Object> res = sendRequest("subtract", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -51,9 +58,10 @@ public class CalculatorController {
     }
 
     @GetMapping(value = "/multiplication")
-    public ResponseEntity getMultiplication(@RequestParam BigDecimal a, @RequestParam BigDecimal b){
+    public ResponseEntity getMultiplication(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            Map<String, Object> res = sendRequest("multiply", a, b);
+            String uniqueId = response.getHeader("X-Unique-ID");
+            Map<String, Object> res = sendRequest("multiply", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -63,9 +71,10 @@ public class CalculatorController {
     }
 
     @GetMapping(value = "/division")
-    public ResponseEntity getDivision(@RequestParam BigDecimal a, @RequestParam BigDecimal b){
+    public ResponseEntity getDivision(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            Map<String, Object> res = sendRequest("divide", a, b);
+            String uniqueId = response.getHeader("X-Unique-ID");
+            Map<String, Object> res = sendRequest("divide", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -74,11 +83,16 @@ public class CalculatorController {
         }
     }
 
-    private Map<String, Object> sendRequest(String operation, BigDecimal a, BigDecimal b) {
-        Map<String, Object> message = new HashMap<>();
-        message.put("operation", operation);
-        message.put("a", a);
-        message.put("b", b);
+    private Map<String, Object> sendRequest(String operation, BigDecimal a, BigDecimal b, String uniqueId) throws JsonProcessingException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("operation", operation);
+        body.put("a", a);
+        body.put("b", b);
+
+        String messageBody = objectMapper.writeValueAsString(body);
+        Message message = MessageBuilder.withBody(messageBody.getBytes()) // The body is the JSON string of the HashMap
+                .setHeader("X-Unique-ID", uniqueId)  // Include the correlation ID
+                .build();
 
         BigDecimal result = (BigDecimal) rabbitTemplate.convertSendAndReceive(exchangeKey, routingKey, message);
 
