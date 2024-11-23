@@ -6,5 +6,7 @@
         <appender-ref ref="CONSOLE" />
     </root>
     <logger name="org.springframework.web" level="DEBUG"/>
-    <property name="CONSOLE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg - MDC:[%X{uniqueId}]%n%n"/>
+
+    <springProperty scope="context" name="uniqueIdKey" source="mdcUniqueIdKey"/>
+    <property name="CONSOLE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg - UniqueID:[%X{${uniqueIdKey}}]%n%n"/>
 </configuration>

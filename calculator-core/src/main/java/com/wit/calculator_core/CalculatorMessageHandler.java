@@ -6,6 +6,7 @@ import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -16,7 +17,11 @@ import java.util.Map;
 public class CalculatorMessageHandler {
 
     private final CalculatorService calculatorService;
-    private static final String MDC_UNIQUE_ID = "uniqueId";
+    @Value("${uniqueIdHeaderKey}")
+    private String UNIQUE_ID_HEADER;
+    @Value("${mdcUniqueIdKey}")
+    private String MDC_UNIQUE_ID;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -26,7 +31,7 @@ public class CalculatorMessageHandler {
 
     @RabbitListener(queues = "${queueKey}")
     public BigDecimal processMessage(Message message) {
-        String uniqueId = (String) message.getMessageProperties().getHeaders().get("X-Unique-ID");
+        String uniqueId = (String) message.getMessageProperties().getHeaders().get(UNIQUE_ID_HEADER);
         MDC.put(MDC_UNIQUE_ID, uniqueId);
 
         try {

@@ -26,6 +26,8 @@ public class CalculatorController {
     private String exchangeKey;
     @Value("${routingKey}")
     private String routingKey;
+    @Value("${uniqueIdHeaderKey}")
+    private String UNIQUE_ID_HEADER;
 
     public CalculatorController(RabbitTemplate rabbitTemplate){
         this.rabbitTemplate = rabbitTemplate;
@@ -34,7 +36,7 @@ public class CalculatorController {
     @GetMapping(value = "/sum")
     public ResponseEntity getSum(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            String uniqueId = response.getHeader("X-Unique-ID");
+            String uniqueId = response.getHeader(UNIQUE_ID_HEADER);
             Map<String, Object> res = sendRequest("add", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
@@ -47,7 +49,7 @@ public class CalculatorController {
     @GetMapping(value = "/subtraction")
     public ResponseEntity getSubtraction(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            String uniqueId = response.getHeader("X-Unique-ID");
+            String uniqueId = response.getHeader(UNIQUE_ID_HEADER);
             Map<String, Object> res = sendRequest("subtract", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
@@ -60,7 +62,7 @@ public class CalculatorController {
     @GetMapping(value = "/multiplication")
     public ResponseEntity getMultiplication(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            String uniqueId = response.getHeader("X-Unique-ID");
+            String uniqueId = response.getHeader(UNIQUE_ID_HEADER);
             Map<String, Object> res = sendRequest("multiply", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
@@ -73,7 +75,7 @@ public class CalculatorController {
     @GetMapping(value = "/division")
     public ResponseEntity getDivision(HttpServletResponse response, @RequestParam BigDecimal a, @RequestParam BigDecimal b){
         try {
-            String uniqueId = response.getHeader("X-Unique-ID");
+            String uniqueId = response.getHeader(UNIQUE_ID_HEADER);
             Map<String, Object> res = sendRequest("divide", a, b, uniqueId);
             return ResponseEntity.ok().body(res);
         } catch (IllegalArgumentException e) {
@@ -90,8 +92,8 @@ public class CalculatorController {
         body.put("b", b);
 
         String messageBody = objectMapper.writeValueAsString(body);
-        Message message = MessageBuilder.withBody(messageBody.getBytes()) // The body is the JSON string of the HashMap
-                .setHeader("X-Unique-ID", uniqueId)  // Include the correlation ID
+        Message message = MessageBuilder.withBody(messageBody.getBytes())
+                .setHeader(UNIQUE_ID_HEADER, uniqueId)
                 .build();
 
         BigDecimal result = (BigDecimal) rabbitTemplate.convertSendAndReceive(exchangeKey, routingKey, message);
